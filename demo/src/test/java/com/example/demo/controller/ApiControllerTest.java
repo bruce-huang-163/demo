@@ -1,6 +1,8 @@
 package com.example.demo.controller;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -31,11 +33,13 @@ public class ApiControllerTest {
         System.out.println("Start Test");
     }
 
-    @Test
-    void testApiRateLimit() throws Exception {
-        System.out.println("Test Started");
-        
-        String userId = "user1";
+    @ParameterizedTest
+    @CsvSource(value = {
+        "api1, user1",
+        "api2, user2",
+        "api3, user3"
+    })
+    void testApiRateLimit(String apiName, String userId) throws Exception {
         int requestCount = 500;
         int totalRequests = requestCount * 60;
 
@@ -47,10 +51,7 @@ public class ApiControllerTest {
         for (int i = 0; i < totalRequests; i++) {
             executorService.execute(() -> {
                 try {
-                    mockMvc.perform(MockMvcRequestBuilders.get("/api/api1")
-                           .header("user-id", userId)
-                           .contentType(MediaType.APPLICATION_JSON))
-                           .andExpect(status().isOk());
+                    testApiHelper(apiName, userId);
                 } catch (Exception e) {
                     e.printStackTrace();
                 } finally {
@@ -64,5 +65,24 @@ public class ApiControllerTest {
         long endTime = System.currentTimeMillis();
         System.out.println("Total time taken for requests: " + (endTime - startTime) + " ms");
 
+    }
+
+    void testApiHelper(String apiName, String userId) throws Exception {
+        if ("api1".equals(apiName)) {
+            mockMvc.perform(MockMvcRequestBuilders.get("/api/api1")
+                           .header("user-id", userId)
+                           .contentType(MediaType.APPLICATION_JSON))
+                           .andExpect(status().isOk());
+        } else if ("api2".equals(apiName)) {
+            mockMvc.perform(MockMvcRequestBuilders.post("/api/api2")
+                           .header("user-id", userId)
+                           .contentType(MediaType.APPLICATION_JSON))
+                           .andExpect(status().isOk());
+        } else {
+            mockMvc.perform(MockMvcRequestBuilders.put("/api/api3")
+                           .header("user-id", userId)
+                           .contentType(MediaType.APPLICATION_JSON))
+                           .andExpect(status().isOk());
+        }
     }
 }
